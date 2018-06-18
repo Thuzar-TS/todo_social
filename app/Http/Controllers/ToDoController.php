@@ -14,7 +14,7 @@ class ToDoController extends Controller
         if (Auth::user()->is_admin) {
             $friends = Invitation::where("admin_id",Auth::user()->id)->where("accepted",1)->get();
             $invitations = Invitation::where("admin_id",Auth::user()->id)->where("accepted",0)->get();
-            $tasks = Task::where('user_id',Auth::user()->id)->orWhere("admin_id",Auth::user()->admin_id)->orderBy('created_at','DESC')->paginate(4);
+            $tasks = Task::where('user_id',Auth::user()->id)->orWhere("admin_id",Auth::user()->id)->orderBy('created_at','DESC')->paginate(4);
         }
         else{     
           $invitations = [];       
@@ -28,35 +28,76 @@ class ToDoController extends Controller
     	if ($request->input('task')) {
 	    	$task = new Task;
 	    	$task->content = $request->input('task');
+                if (Auth::user()->is_admin) {
+                    if ($request->input('assignTo') == Auth::user()->id) {
+                      Auth::user()->tasks()->save($task);  
+                    }
+                    elseif ($request->input('assignTo') != null) {
+                      $task->user_id = $request->input('assignTo');
+                      $task->admin_id = Auth::user()->id;
+                      $task->save();
+                    }
+                }
+                else{                    
 	    	Auth::user()->tasks()->save($task);
+                }
     	}
     	return redirect()->back();
     }
 
     public function edit($id){
     	$task = Task::find($id);
-    	return view("edit",['task'=>$task]);
+           if (Auth::user()->is_admin) {
+               $friends = Invitation::where("admin_id",Auth::user()->id)->where("accepted",1)->get();
+               $invitations = Invitation::where("admin_id",Auth::user()->id)->where("accepted",0)->get();
+           }
+           else{
+               $friends = [];
+               $invitations = [];
+           }
+    	return view("edit",['task'=>$task,'friends'=>$friends,'invitations'=>$invitations]);
     }
 
     public function update(Request $request,$id){
     	if ($request->input('task')) {
 	    	$task = Task::find($id);
-	    	$task->content = $request->input('task');
-	    	$task->save();
+                     $task->content = $request->input('task');
+                    if (Auth::user()->is_admin) {
+                        if ($request->input('assignTo') == Auth::user()->id) {
+                          Auth::user()->tasks()->save($task);  
+                        }
+                        elseif ($request->input('assignTo') != null) {
+                          $task->user_id = $request->input('assignTo');
+                          $task->admin_id = Auth::user()->id;
+                          $task->save();
+                        }
+                    }
+                    else{
+                        if ($this->_authorize($task->user_id))
+                        $task->save();
+                    }    	
+	    	
     	}
     	return redirect('/');
     }
 
     public function delete($id){
     	$task = Task::find($id);
-    	$task->delete();
-    	return redirect()->back();
+           if (!Auth::user()->is_admin) {
+               if (!$this->_authorize($task->user_id)) {
+    	       return redirect()->back();
+                 exit();                   
+               }
+           }
+        $task->delete();
     }
 
     public function updateStatus($id){
     	$task = Task::find($id);
     	$task->status = !$task->status;
-    	$task->save();
+           if ($this->_authorize($task->user_id)) {
+               $task->save();
+           }    	
     	return redirect()->back();
     }
 
@@ -75,6 +116,7 @@ class ToDoController extends Controller
     public function acceptInvitation($id){
         $invitation = Invitation::find($id);
         $invitation->accepted = true;
+        if ($this->_authorize($invitation->admin_id))
         $invitation->save();
 
         return redirect()->back();
@@ -82,8 +124,22 @@ class ToDoController extends Controller
 
     public function denyInvitation($id){
         $invitation = Invitation::find($id);
-        $invitation->delete();
+        if ($this->_authorize($invitation->admin_id))
+            $invitation->delete();
         
         return redirect()->back();
+    }
+
+    public function deleteFriend($id){
+        $invitation = Invitation::find($id);
+        if ($this->_authorize($invitation->admin_id)) {
+            $invitation->delete();
+        }        
+        
+        return redirect()->back();
+    }
+
+    protected function _authorize($id){
+        return Auth::user()->id === $id?true:false;
     }
 }

@@ -34,16 +34,7 @@
       </table>
 
       {{$tasks->links('vendor.pagination.materialize')}}
-      <!-- <ul class="pagination">
-            <li class="disabled"><a href="#!"><i class="material-icons">chevron_left</i></a></li>
-            <li class="active"><a href="#!">1</a></li>
-            <li class="waves-effect"><a href="#!">2</a></li>
-            <li class="waves-effect"><a href="#!">3</a></li>
-            <li class="waves-effect"><a href="#!">4</a></li>
-            <li class="waves-effect"><a href="#!">5</a></li>
-            <li class="waves-effect"><a href="#!"><i class="material-icons">chevron_right</i></a></li>
-      </ul> -->
-
+      
       <form method="POST" action="{{ route('store') }}" class="col s12">
       
       <div class="row">
@@ -66,7 +57,7 @@
     <select name="admin">
       <option value="" disabled selected>Send Invitation to:</option>
       @foreach($friends as $friend)
-      <option value="{{ $friend->id }}">{{ $friend->name }}{{ $friend->id }}</option>
+      <option value="{{ $friend->id }}">{{ $friend->name }}</option>
       @endforeach
     </select>
     <label>Send Invitation</label>
@@ -80,11 +71,9 @@
     <br><br><br>
     <ul class="collection with-header">
         <li class="collection-header"><h4>My Friends</h4></li>
-        <li class="collection-item"><div>Aye Pa<a href="#!" class="secondary-content">delete</a></div></li>
-        <li class="collection-item"><div>Zin Zin<a href="#!" class="secondary-content">delete</a></div></li>
-        <li class="collection-item"><div>Thiri<a href="#!" class="secondary-content">delete</a></div></li>
-        <li class="collection-item"><div>Aye Thu<a href="#!" class="secondary-content">delete</a></div></li>
-        <li class="collection-item"><div>Cho<a href="#!" class="secondary-content">delete</a></div></li>	        
+        @foreach($friends as $friend)
+        <li class="collection-item"><div>{{ $friend->friend->name }}<a href="{{ route('deleteFriend',$friend->id) }}" class="secondary-content">delete</a></div></li>        	        
+        @endforeach
     </ul>
     @endif
 
